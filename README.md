@@ -1,136 +1,93 @@
-# End to End Automated Development to Deployment Setup
-## About ##
-The objective of this assignment it to create an end to end automated pipeline. Whenever the developer makes the changes to a branch (in our case dev) or master branch, the code is commited then pushed to github, pulled from github by testing team, verify changes, and approve the code for deployment on production server. This is a tedious and error prone task. To automate the complete flow of code from development to testing to deployment on production server we have setup the following infrastructure using **Jenkins**, **Docker** and **Git**, **Github**.
+# Creating container inside docker and performing task
 
-_**Assumptions**_
-* Jenkins and Docker are already installed in RHEL8 OS
-* Jenkins is added in the sudoers list
-* User has a github account setup and git bash installed on the development system
+1. Create container image that&#39;s has Jenkins installed using dockerfile
 
-### PART-1 Setting up local workspace (git) and remote repository (github)
+2. When we launch this image, it should automatically starts Jenkins service in the container.
 
-* Create a workspace in any desired location.
+3. Create a job chain of job1, job2, job3 and job4 using build pipeline plugin in Jenkins
 
-* Create a file index.html and enter some code in that file.
+4. Job1 : Pull the Github repo automatically when some developers push repo to Github.
 
-![](https://github.com/kartikay1506/devops-trainin-assignment/blob/master/images/2020-05-06%20(17).png)
+5. Job2 : By looking at the code or program file, Jenkins should automatically start the respective language interpreter install image container to deploy code ( eg. If code is of PHP, then Jenkins should start the container that has PHP already installed ).
 
+6. Job3 : Test your app if it is working or not.
 
-* Open git bash in the current workspace. WE have our files here.
+7. Job4 : if app is not working , then send email to developer with error messages.
 
-![](https://github.com/kartikay1506/devops-trainin-assignment/blob/master/images/2020-05-06%20(16).png)
+8. Create One extra job job5 for monitor : If container where app is running. fails due to any reason then this job should automatically start the container again.
 
+# Solution:
 
-* Create a branch dev and switch to that branch as following:
+## Create container image that&#39;s has Jenkins installed using dockerfile
 
-![](https://github.com/kartikay1506/devops-trainin-assignment/blob/master/images/2020-05-06%20(19).png)
+Step 1: Create dockerfile that pulls centos from dockerhub and install Jenkins in it.
 
+![](RackMultipart20200520-4-1ldco2s_html_bffabb4534d86c8e.png) ![](RackMultipart20200520-4-1ldco2s_html_e84944c1c76fb6f2.png)
 
-* Edit some code in this branch.
+FROM : image to be used in container
 
-* Create file in the folder .git/hooks by the name of &quot;post-commit&quot; which is known as the post commit hook and add the following lines of code:
+RUN: commands to run to modify the image
 
-```bash
-#! /bin/bash
-git push
-```
+CMD: the cmd used here will keep the Jenkins live till the container is on.
 
-* Add the remote repository as origin:
-```bash
-git remote add origin https://github.com/kartikay1506/devops-training
-```
+Expose: instructs the docker that the container listens at specific port.
 
-*  Add all the files in dev branch to staging area and commit using the following code:
-```bash
-git add \*
-git commit -m "First Commit"
-```
-_As soon as the code is committed it will automatically be pushed to github repository by the post commit hook we created in step 6_
+STEP 2:
 
-* We can now see that our repository is updated and has two branches: master and dev
+BUILD the docker file using docker build –t name:tag .
 
-![](https://github.com/kartikay1506/devops-trainin-assignment/blob/master/images/2020-05-06%20(29).png)
+![](RackMultipart20200520-4-1ldco2s_html_9c8e4c9d50cd662f.gif)
 
+STEP 3:
 
+Run the container by :
 
+Docker run –dit --name os2 –v jenklins\_storage:/root/.jenkins –P docker-jenkins:v1
 
-### PART -2 Setting Up Jenkins
-**Job 1 will setup a production server that will be pulling the code from the master branch of the linked repository which will be triggered after the Quality team verifies the changes made in the dev branch.**
+STEP 4:
 
+Open the url at the browser using 0.0.0.0:portnumber
 
-* Give Job name &quot;master-job&quot;.
+![](RackMultipart20200520-4-1ldco2s_html_275205c4e06c44e8.gif)
 
-![](https://github.com/kartikay1506/devops-trainin-assignment/blob/master/images/2020-05-06%20(2).png)
+Jenkins has been SUCESSFULLY installed inside a container.
 
+## Create a job chain of job1, job2, job3 and job4 using build pipeline plugin in Jenkins
 
-* Add the link of the github repository created before.
+CREATING JOB 1:
 
-![](https://github.com/kartikay1506/devops-trainin-assignment/blob/master/images/2020-05-06%20(3).png)
+Pull the Github repo automatically when some developers push repo to Github.
 
+![](RackMultipart20200520-4-1ldco2s_html_7fbfd70e4b5a7a8e.gif)
 
-* Select &quot;Trigger builds remotely&quot; to build the job through remote trigger and save the auth token for later use.
+![](RackMultipart20200520-4-1ldco2s_html_6ff624d3cec4d272.gif)
 
-As soon as the developer will commit the code on master branch this job will be triggered using the url _**host_ip:8080/job/master-job/build/?token=Auth_Token**_ and the code will be deployed on the production server.
+![](RackMultipart20200520-4-1ldco2s_html_9ec3dbb0b6f21065.gif)
 
-![](https://github.com/kartikay1506/devops-trainin-assignment/blob/master/images/2020-05-06%20(4).png)
+Creating job 2:
 
+This job will trigger with job 1
 
-* Add the following script to be executed on the host while the job is being build.
-This script will check for a docker container with name &quot;master-docker&quot; and if not found it will deploy one container with the configuration and copy whatever data it pulled from the master branch into the folder _**/home/aws/kartikay/master**_ which will later be mounted on the production server container.
+![](RackMultipart20200520-4-1ldco2s_html_792cdead535caf0d.gif)
 
-![](https://github.com/kartikay1506/devops-trainin-assignment/blob/master/images/2020-05-06%20(9).png)
+Then it will detect the type of file and will launch a container according to it
 
+![](RackMultipart20200520-4-1ldco2s_html_4871a24d24ee77c9.gif)
 
+Creating job 3:
 
+Testing your applications if it is working or not. And triggering with job 2 ![](RackMultipart20200520-4-1ldco2s_html_499e5f0091704416.gif)
 
-**Job 2 will setup a test server that will be pulling the code from the dev branch of the linked repository and will be triggered after the developer commits the code in the dev branch.**
+Creating job 4:
 
+We will be sending mail to the user if any job is not working
 
-* Give Job name &quot;dev-job&quot;.
+![](RackMultipart20200520-4-1ldco2s_html_a4d2cfcfd82b32f4.gif)
 
-![](https://github.com/kartikay1506/devops-trainin-assignment/blob/master/images/2020-05-06%20(11).png)
+![](RackMultipart20200520-4-1ldco2s_html_1a8e340860ebc1e7.gif)
 
+Creating job 5:
 
-*  Add the link of the github repository created before and select dev as the branch to be used.
+job5 for monitor : If container where app is running. fails due to any reason then this job should automatically start the container again.
 
-![](https://github.com/kartikay1506/devops-trainin-assignment/blob/master/images/2020-05-06%20(12).png)
-
-
-*  Select &quot;Trigger builds remotely&quot; to build the job through remote trigger and save the auth token for later use.
-
-As soon as the developer will commit the code on dev branch this job will be triggered using the url _**host_ip:8080/job/dev-job/build/?token=Auth_Token**_ and the code will be deployed on the testing server.
-
-![](https://github.com/kartikay1506/devops-trainin-assignment/blob/master/images/2020-05-06%20(13).png)
-
-
-* Add the following script to be executed on the host while the job is being build.
-This script will check for a docker container with name &quot;dev-docker&quot; and if not found it will deploy one container with the configuration and copy whatever data it pulled from the dev branch into the folder _**/home/aws/kartikay/dev**_ which will later be mounted on the testing server container.
-
-![](https://github.com/kartikay1506/devops-trainin-assignment/blob/master/images/2020-05-06%20(14).png)
-
-
-
-
-**Job 3 will be triggered when the Quality team has verified the code and triggerd this job through the remote build trigger. This Job will merge the dev branch and the master branch,  after merging it will trigger Job 1.**
-
-
-* Give Job name &quot;dev-test-job&quot;.
-
-![](https://github.com/kartikay1506/devops-trainin-assignment/blob/master/images/2020-05-06%20(22).png)
-
-
-* Add the link of the github repository created before and select dev as the branch to be used for merging with the master branch.
-
-![](https://github.com/kartikay1506/devops-trainin-assignment/blob/master/images/2020-05-06%20(23).png)
-
-
-* Select &quot;Trigger builds remotely&quot; to build the job through remote trigger and save the auth token for later use.
-
-As soon as the Quality team will verify the code on dev branch, they will trigger this job using the url _**host_ip:8080/job/dev-test-job/build/?token=Auth_Token**_.
-
-![](https://github.com/kartikay1506/devops-trainin-assignment/blob/master/images/2020-05-06%20(24).png)
-
-
-* Now add post build action that will merge the branch with master branch when the test team will trigger this job upon verifying the changes in the dev branch and as soon as this job is build successfully, the dev branch will be merged with master branch and Job 1 will be triggered for deploying the verified code on the production server.
-
-![](https://github.com/kartikay1506/devops-trainin-assignment/blob/master/images/2020-05-06%20(26).png)
+![](RackMultipart20200520-4-1ldco2s_html_d8eea1d395498975.gif)
